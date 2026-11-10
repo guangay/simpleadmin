@@ -1,0 +1,22 @@
+{
+	"admin/simpleadmin": {
+		"title": "RM520N-GL 5G",
+		"order": 26,
+		"action": {
+			"type": "firstchild"
+		},
+		"depends": {
+			"acl": [ "luci-app-simpleadmin" ],
+			"fs": { "/usr/bin/simpleadmin-httpd": "executable" }
+		}
+	},
+
+	"admin/simpleadmin/panel": {
+		"title": "管理面板",
+		"order": 1,
+		"action": {
+			"type": "view",
+			"path": "simpleadmin/home"
+		}
+	}
+}

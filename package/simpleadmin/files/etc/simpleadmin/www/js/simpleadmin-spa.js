@@ -1,0 +1,376 @@
+(function (global) {
+  'use strict';
+
+  const root = global.SimpleAdmin || (global.SimpleAdmin = {});
+  const pages = [
+    { id: 'dashboard', selector: '#dashboardApp', factoryName: 'dashboard', title: '首页' },
+    { id: 'network', selector: '#networkApp', factoryName: 'network', title: '网络' },
+    { id: 'settings', selector: '#settingsApp', factoryName: 'settings', title: '设置' },
+    { id: 'sms', selector: '#smsApp', factoryName: 'sms', title: '短信' },
+    { id: 'phone', selector: '#phoneApp', factoryName: 'phone', title: '电话' },
+    { id: 'deviceinfo', selector: '#deviceinfoApp', factoryName: 'deviceinfo', title: '设备信息' },
+    { id: 'console', selector: null, factoryName: null, title: '控制台', frameSelector: '#consoleFrame', frameSrc: '/console' }
+  ];
+  const mountedPages = new Set();
+  const revealTimers = new WeakMap();
+  const pageIds = new Set(pages.map((page) => page.id));
+
+  function disableBrowserScrollRestore() {
+    try {
+      if ('scrollRestoration' in global.history) {
+        global.history.scrollRestoration = 'manual';
+      }
+    } catch (_) {
+      // Ignore browsers that block history access.
+    }
+  }
+
+  function setElementScrollTop(element) {
+    if (!element) return;
+    try {
+      element.scrollTop = 0;
+      element.scrollLeft = 0;
+    } catch (_) {
+      // Ignore read-only scroll containers.
+    }
+  }
+
+  function collectScrollContainers() {
+    const containers = [
+      document.scrollingElement,
+      document.documentElement,
+      document.body
+    ];
+    [
+      '.sa-shell',
+      '.sa-sidebar',
+      '.sa-main',
+      '.sa-content',
+      '.sa-page',
+      '.sa-page .sa-page-app'
+    ].forEach((selector) => {
+      document.querySelectorAll(selector).forEach((element) => containers.push(element));
+    });
+    return Array.from(new Set(containers.filter(Boolean)));
+  }
+
+  function resetScrollPosition() {
+    collectScrollContainers().forEach(setElementScrollTop);
+  }
+
+  function resetScrollPositionAfterBrowserRestore() {
+    document.documentElement.classList.add('sa-no-scroll-motion');
+    resetScrollPosition();
+    global.setTimeout(() => {
+      resetScrollPosition();
+      document.documentElement.classList.remove('sa-no-scroll-motion');
+    }, 0);
+  }
+
+  function beginPageSwitch() {
+    document.documentElement.classList.add('sa-page-switching', 'sa-no-scroll-motion');
+    resetScrollPosition();
+  }
+
+  function finishPageSwitchAtTop() {
+    resetScrollPosition();
+    document.documentElement.classList.remove('sa-page-switching');
+    global.setTimeout(() => {
+      resetScrollPosition();
+      document.documentElement.classList.remove('sa-no-scroll-motion');
+    }, 0);
+  }
+
+  function updateAddressHash(id, replace) {
+    const hash = `#${id}`;
+    if (global.location.hash === hash) return;
+    if (global.history && typeof global.history[replace ? 'replaceState' : 'pushState'] === 'function') {
+      try {
+        global.history[replace ? 'replaceState' : 'pushState']({ simpleadminPage: id }, '', hash);
+        return;
+      } catch (_) {
+        // Fall back to location hash on browsers that block history access.
+      }
+    }
+    // Do not fall back to location.hash here: native hash navigation may restore or
+    // animate scroll position. Keeping the current URL is safer than showing a scroll.
+  }
+
+  function normalizePage(value) {
+    const id = String(value || '').replace(/^#?\/?/, '');
+    if (id === 'forwarding') return 'sms';
+    return pageIds.has(id) ? id : 'dashboard';
+  }
+
+  function getPage(id) {
+    return pages.find((page) => page.id === id) || pages[0];
+  }
+
+  function setActiveLink(id) {
+    document.querySelectorAll('[data-page-link]').forEach((link) => {
+      const active = link.getAttribute('data-page-link') === id;
+      link.classList.toggle('active', active);
+      if (active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+  }
+
+  function clearRevealRunning(section) {
+    if (!section) return;
+    const timer = revealTimers.get(section);
+    if (timer) {
+      global.clearTimeout(timer);
+      revealTimers.delete(section);
+    }
+    section.classList.remove('sa-reveal-running');
+  }
+
+  // 控制台 iframe 常驻（src 只设一次），切走再切回时内部滚动位置会停在离开处——
+  // 终端惯例是跟随最新输出（prompt 在末尾），切回时滚到底
+  function followConsoleOutput() {
+    try {
+      const frame = document.getElementById('consoleFrame');
+      const term = frame && frame.contentDocument ? frame.contentDocument.getElementById('term') : null;
+      if (term) term.scrollTop = term.scrollHeight;
+    } catch (error) {
+      // 跨域策略变化时忽略（同源 /console 正常可达）
+    }
+  }
+
+  function setActiveSection(id) {
+    document.querySelectorAll('.sa-page').forEach((section) => {
+      const active = section.getAttribute('data-page') === id;
+      section.classList.toggle('active', active);
+      if (!active) clearRevealRunning(section);
+    });
+  }
+
+  function collectRevealItems(section) {
+    const selectors = [
+      ':scope > .sa-page-titlebar',
+      ':scope .sa-page-app > .sa-section-stack > .sa-stack-item',
+      ':scope .sa-page-app > .sa-panel',
+      ':scope .sa-page-app .sa-band-mode-panel',
+      ':scope .sa-page-app .sa-data-table tr',
+      ':scope .sa-page-app .sa-sms-summary-row'
+    ];
+    return Array.from(new Set(section.querySelectorAll(selectors.join(','))));
+  }
+
+  function applyProgressiveReveal(id) {
+    const section = document.querySelector(`.sa-page[data-page="${id}"]`);
+    if (!section) return;
+    clearRevealRunning(section);
+    const items = collectRevealItems(section);
+    if (items.length === 0) return;
+    section.classList.add('sa-reveal-running');
+    items.forEach((item, index) => {
+      item.classList.remove('sa-reveal-visible');
+      item.classList.add('sa-reveal-item');
+      item.style.setProperty('--sa-reveal-index', String(index));
+      item.style.setProperty('--sa-reveal-delay', `${Math.min(index, 12) * 42}ms`);
+    });
+    nextFrame(() => {
+      items.forEach((item) => {
+        item.classList.add('sa-reveal-visible');
+      });
+      const maxDelay = Math.min(Math.max(items.length - 1, 0), 12) * 42;
+      const timer = global.setTimeout(() => {
+        clearRevealRunning(section);
+      }, maxDelay + 520);
+      revealTimers.set(section, timer);
+    });
+  }
+
+  function nextFrame(callback) {
+    if (typeof global.requestAnimationFrame === 'function') {
+      global.requestAnimationFrame(callback);
+      return;
+    }
+    global.setTimeout(callback, 16);
+  }
+
+  function scheduleProgressiveReveal(id) {
+    nextFrame(() => {
+      nextFrame(() => applyProgressiveReveal(id));
+    });
+  }
+
+  function mountPage(id) {
+    if (mountedPages.has(id)) return;
+    const page = getPage(id);
+    if (page.frameSelector) {
+      const frame = document.querySelector(page.frameSelector);
+      if (frame && !frame.getAttribute('src')) {
+        frame.setAttribute('src', frame.getAttribute('data-console-src') || page.frameSrc);
+      }
+      mountedPages.add(id);
+      return;
+    }
+    const factory = root.Pages && root.Pages[page.factoryName];
+    if (typeof factory !== 'function') {
+      console.warn('SimpleAdmin page factory missing:', page.factoryName);
+      return;
+    }
+    root.Vue.mount(factory, page.selector);
+    if (id === 'sms') root.Vue.mount(root.Pages.forwarding, '#forwardingApp');
+    mountedPages.add(id);
+  }
+
+  function applyTitle(id) {
+    const page = getPage(id);
+    if (root.Brand && typeof root.Brand.setPageTitle === 'function') {
+      root.Brand.setPageTitle(page.title);
+      return;
+    }
+    document.title = page.title;
+  }
+
+  function closeMobileSidebar() {
+    const sidebar = document.getElementById('simpleadminSidebar');
+    if (sidebar) sidebar.classList.remove('open');
+  }
+
+  function showPage(value, options) {
+    const id = normalizePage(value);
+    disableBrowserScrollRestore();
+    beginPageSwitch();
+    setActiveSection(id);
+    setActiveLink(id);
+    mountPage(id);
+    if (String(value).replace(/^#/, '') === 'forwarding') root.Vue.apps['#smsApp'].selectSmsView('forwarding');
+    applyTitle(id);
+    if (id === 'console') followConsoleOutput();
+    closeMobileSidebar();
+    if (!options || options.updateHash !== false) {
+      updateAddressHash(id, options && options.replaceHash === true);
+    }
+    if (root.Lang && typeof root.Lang.apply === 'function') {
+      root.Lang.apply(document);
+    }
+    finishPageSwitchAtTop();
+    scheduleProgressiveReveal(id);
+    if (typeof global.dispatchEvent === 'function') {
+      global.dispatchEvent(new CustomEvent('simpleadmin:page-changed', {
+        detail: { page: id }
+      }));
+    }
+  }
+
+  function bindNavigation() {
+    document.querySelectorAll('[data-logout-link]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (root.Logout && typeof root.Logout.start === 'function') {
+          root.Logout.start();
+        } else {
+          global.location.href = '/api/logout';
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-page-link]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        showPage(link.getAttribute('data-page-link'));
+      });
+    });
+
+    const sidebar = document.getElementById('simpleadminSidebar');
+    if (sidebar) {
+      document.querySelectorAll('.sa-sidebar-toggle').forEach((sidebarToggle) => {
+        if (sidebarToggle.dataset.simpleadminSidebarBound === '1') return;
+        sidebarToggle.dataset.simpleadminSidebarBound = '1';
+        sidebarToggle.addEventListener('click', () => {
+          sidebar.classList.toggle('open');
+        });
+      });
+    }
+
+    global.addEventListener('popstate', () => {
+      showPage(global.location.hash, { updateHash: false });
+    });
+
+    global.addEventListener('hashchange', () => {
+      showPage(global.location.hash, { updateHash: false });
+    });
+  }
+
+  function init() {
+    disableBrowserScrollRestore();
+    document.documentElement.classList.add('sa-progressive-ready');
+    bindNavigation();
+    showPage(global.location.hash || 'dashboard', { updateHash: false });
+  }
+
+  global.addEventListener('load', resetScrollPositionAfterBrowserRestore);
+  global.addEventListener('pageshow', resetScrollPositionAfterBrowserRestore);
+
+  root.Spa = { showPage, mountPage, resetScrollPosition };
+
+  // ---- 嵌入宿主（LuCI iframe）高度同步：跨域 iframe 宿主读不到 scrollHeight，
+  // 由面板在上报；页面切换/内容尺寸变化/窗口 resize 后去抖发送 ----
+  function measureContentHeight() {
+    // html/body 的 min-height 会把 scrollHeight 撑到视口高（=iframe 当前高），
+    // 收缩方向永远锁死——以布局根 .sa-shell 的内容底边为准
+    const shell = document.querySelector('.sa-shell');
+    if (shell) {
+      const rect = shell.getBoundingClientRect();
+      const top = Math.max(rect.top + (global.scrollY || 0), 0);
+      return Math.ceil(rect.bottom + (global.scrollY || 0) - top);
+    }
+    return document.body ? document.body.scrollHeight : 0;
+  }
+
+  // 嵌入标记：CSS 据此把视口单位高度（76vh/52dvh 等）换成定值——它们随 iframe
+  // 高度水涨船高，与高度上报互为正反馈会 runaway
+  if (global.parent !== global && document.documentElement) {
+    document.documentElement.classList.add('sa-embedded');
+  }
+  function notifyHostNavigate() {
+    if (global.parent === global) return;
+    try {
+      global.parent.postMessage({ type: 'simpleadmin:navigate' }, '*');
+    } catch (_) {}
+  }
+  function notifyHostHeight() {
+    if (global.parent === global) return;
+    const height = measureContentHeight();
+    if (height > 0) {
+      try {
+        global.parent.postMessage({ type: 'simpleadmin:height', height: height }, '*');
+      } catch (_) {
+        // 跨域策略变化时静默放弃（宿主回退到默认 viewport 高度）
+      }
+    }
+  }
+
+  let hostHeightTimer = null;
+  function scheduleHostHeightNotify() {
+    if (hostHeightTimer) global.clearTimeout(hostHeightTimer);
+    hostHeightTimer = global.setTimeout(function () {
+      hostHeightTimer = null;
+      notifyHostHeight();
+    }, 120);
+  }
+
+  if (typeof global.ResizeObserver === 'function') {
+    const observer = new ResizeObserver(scheduleHostHeightNotify);
+    if (document.documentElement) observer.observe(document.documentElement);
+    if (document.body) observer.observe(document.body);
+    const shell = document.querySelector('.sa-shell');
+    if (shell) observer.observe(shell);
+  }
+  global.addEventListener('load', scheduleHostHeightNotify);
+  global.addEventListener('resize', scheduleHostHeightNotify);
+global.addEventListener('simpleadmin:page-changed', function () {
+    scheduleHostHeightNotify();
+    notifyHostNavigate();
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+})(window);

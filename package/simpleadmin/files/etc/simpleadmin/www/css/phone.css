@@ -1,0 +1,271 @@
+/* SimpleAdmin 电话模块样式（BG 电话 v0.1）— iOS 风格、响应式双形态
+ * 窄屏（≤720px）：单列手机模式，底部标签栏；宽屏：左列表右拨号双栏。 */
+
+#phoneApp { color-scheme: light dark; }
+#phoneApp {
+	/* 显式亮色值：light-dark() 需 Chrome123+，旧手机内核无效会导致
+	 * 卡片/底栏背景透明（实测微信内核/旧 WebView），暗色走下方覆盖块 */
+	--ph-bg: #f2f2f7;
+	--ph-card: #fff;
+	--ph-label: #000;
+	--ph-sec: #8e8e93;
+	--ph-blue: #007aff;
+	--ph-green: #34c759;
+	--ph-red: #ff3b30;
+	--ph-sep: rgba(60, 60, 67, .26);
+	--ph-fill: rgba(120, 120, 128, .12);
+	--ph-key: #dcdce1;
+}
+html[data-bs-theme="dark"] #phoneApp {
+	--ph-bg: #000;
+	--ph-card: #1c1c1e;
+	--ph-label: #fff;
+	--ph-blue: #0a84ff;
+	--ph-green: #30d158;
+	--ph-red: #ff453a;
+	--ph-sep: rgba(84, 84, 88, .65);
+	--ph-fill: rgba(120, 120, 128, .24);
+	--ph-key: #3a3a3c;
+}
+
+/* 布局 */
+.ph-shell { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.ph-col-l, .ph-col-r { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+@media (max-width: 720px) {
+	.ph-shell { grid-template-columns: minmax(0, 1fr); }
+	.ph-tabbar { display: flex; }
+}
+@media (min-width: 721px) { .ph-tabbar { display: none; } }
+
+/* 卡片与列表 */
+.ph-card { background: var(--ph-card); border-radius: 12px; padding: 16px; }
+.ph-cap { font-size: 12px; font-weight: 600; color: var(--ph-sec); letter-spacing: .5px; margin-bottom: 10px; }
+.ph-list { background: var(--ph-card); border-radius: 10px; overflow: hidden; }
+.ph-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; position: relative; border: 0; background: none; width: 100%; text-align: left; font: inherit; color: var(--ph-label); cursor: pointer; }
+.ph-row + .ph-row::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: .5px solid var(--ph-sep); }
+.ph-row:hover { background: var(--ph-fill); }
+.ph-row .grow { flex: 1; min-width: 0; }
+.ph-row .n { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph-row .n.missed { color: var(--ph-red); }
+.ph-row .s { display: block; font-size: 12px; color: var(--ph-sec); }
+.ph-row .m { font-size: 12.5px; color: var(--ph-sec); flex: none; font-variant-numeric: tabular-nums; }
+.ph-avatar { flex: none; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; background: linear-gradient(160deg, #6e7bf2, #4a5ad6); }
+.ph-empty { padding: 26px 14px; text-align: center; color: var(--ph-sec); font-size: 13px; }
+
+/* 顶部分段 */
+.ph-seg { display: flex; background: var(--ph-fill); border-radius: 9px; padding: 2px; gap: 2px; }
+.ph-seg button { flex: 1; border: 0; background: none; font: inherit; font-size: 13px; padding: 6px 0; border-radius: 7px; color: var(--ph-label); cursor: pointer; }
+.ph-seg button.on { background: var(--ph-card); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+
+/* 搜索与输入 */
+.ph-search { display: flex; align-items: center; gap: 8px; background: var(--ph-fill); border-radius: 9px; padding: 0 10px; height: 34px; }
+.ph-search input { flex: 1; border: 0; background: none; outline: none; color: var(--ph-label); font: inherit; font-size: 14px; min-width: 0; }
+.ph-field { width: 100%; border: 1px solid var(--ph-sep); background: var(--ph-card); color: var(--ph-label); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; }
+.ph-label { font-size: 12px; color: var(--ph-sec); margin-bottom: 4px; display: block; }
+
+/* 键盘 */
+.ph-kp { display: grid; grid-template-columns: repeat(3, 72px); grid-auto-rows: 68px; gap: 12px; justify-content: center; }
+.ph-kp button { border: 0; border-radius: 50%; background: var(--ph-key); color: var(--ph-label); font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.ph-kp button:active { filter: brightness(.9); }
+.ph-kp .d { font-size: 27px; line-height: 1; }
+.ph-kp .l { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; color: var(--ph-sec); }
+.ph-disp { min-height: 44px; text-align: center; font-size: 27px; font-weight: 500; color: var(--ph-label); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph-actions { display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; justify-content: center; align-items: center; margin-top: 10px; }
+.ph-call { grid-column: 2; border: 0; border-radius: 30px; height: 58px; background: var(--ph-green); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font: inherit; font-size: 15px; font-weight: 600; }
+.ph-call:disabled { background: var(--ph-key); color: var(--ph-sec); cursor: default; }
+.ph-call.danger { background: var(--ph-red); }
+.ph-del { grid-column: 3; justify-self: center; border: 0; background: none; color: var(--ph-label); cursor: pointer; font-size: 20px; padding: 8px; }
+.ph-del:disabled { visibility: hidden; }
+.ph-hint { text-align: center; font-size: 12px; color: var(--ph-sec); min-height: 18px; }
+.ph-hint.warn { color: var(--ph-red); }
+
+/* 通话卡 */
+.ph-incall { background: linear-gradient(180deg, #3a3a44, #22222a 55%, #16161c); color: #fff; border-radius: 14px; padding: 22px; }
+.ph-incall .nm { font-size: 24px; font-weight: 600; text-align: center; }
+.ph-incall .st { font-size: 13px; color: rgba(255, 255, 255, .72); text-align: center; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.ph-icgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0 6px; }
+.ph-icb { border: 0; background: none; color: #fff; font: inherit; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ph-icb .dot { width: 54px; height: 54px; border-radius: 50%; background: rgba(255, 255, 255, .18); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.ph-icb.on .dot { background: #fff; color: var(--ph-blue); }
+.ph-endrow { display: flex; justify-content: center; margin-top: 8px; }
+.ph-end { width: 60px; height: 60px; border-radius: 50%; border: 0; background: var(--ph-red); color: #fff; font-size: 22px; cursor: pointer; }
+.ph-incoming-banner { background: var(--ph-card); border: 1px solid var(--ph-sep); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.ph-incoming-banner .t { flex: 1; min-width: 0; }
+.ph-btn { border: 0; border-radius: 8px; background: var(--ph-fill); color: var(--ph-blue); font: inherit; font-size: 13px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
+.ph-btn.ok { background: var(--ph-green); color: #fff; }
+.ph-btn.no { background: var(--ph-red); color: #fff; }
+.ph-btn:disabled { opacity: .5; cursor: default; }
+.ph-err { color: var(--ph-red); font-size: 12.5px; padding: 8px 10px; background: rgba(255, 59, 48, .12); background: color-mix(in srgb, var(--ph-red) 12%, transparent); border-radius: 8px; }
+.ph-ok { color: var(--ph-green); font-size: 12.5px; }
+
+/* 通话中 DTMF */
+.ph-dtmf { text-align: center; font-size: 14px; letter-spacing: 3px; min-height: 20px; color: rgba(255, 255, 255, .85); }
+.ph-mini-kp { display: grid; grid-template-columns: repeat(3, 56px); grid-auto-rows: 52px; gap: 8px; justify-content: center; }
+.ph-mini-kp button { border: 0; border-radius: 50%; background: rgba(255, 255, 255, .14); color: #fff; font: inherit; font-size: 20px; cursor: pointer; }
+
+/* 移动端底部标签栏：fixed 真固定屏底（内容不足一屏也贴底），内容让位 */
+@media (max-width: 720px) {
+	.ph-tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+		background: var(--ph-card); border-top: .5px solid var(--ph-sep);
+		border-radius: 0; margin-top: 4px;
+		box-shadow: 0 -2px 10px rgba(0, 0, 0, .08); }
+	#phoneApp { padding-bottom: 64px; }
+}
+.ph-tabbar button { flex: 1; border: 0; background: none; color: var(--ph-sec); font: inherit; font-size: 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0 10px; }
+.ph-tabbar button.on { color: var(--ph-blue); }
+.ph-tabbar .ico { font-size: 20px; line-height: 1; }
+
+/* 桌面标签（隐藏移动版时显示在左栏顶部） */
+/* 桌面标签（>720 宽或横屏矮屏双栏才显示；原无条件 display:flex 盖过
+ * 手机端 none 导致两套菜单重复——BG199f 修正） */
+@media (max-width: 720px) { .ph-desk-tabs { display: none; } }
+@media (min-width: 721px) { .ph-desk-tabs { display: flex; } }
+.ph-desk-tabs { gap: 4px; }
+.ph-desk-tabs button { flex: 1; border: 1px solid var(--ph-sep); background: var(--ph-card); color: var(--ph-label); font: inherit; font-size: 13px; padding: 7px 0; border-radius: 8px; cursor: pointer; }
+.ph-desk-tabs button.on { background: var(--ph-blue); color: #fff; border-color: var(--ph-blue); font-weight: 600; }
+
+.ph-toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+.ph-toolbar .ph-btn { background: var(--ph-fill); }
+
+/* 移动端标签切换显隐 */
+@media (max-width: 720px) { .ph-hide-mobile { display: none; } }
+
+/* ===== 分辨率/比例全面适配（BG199e）：矮竖屏、横屏矮屏、安全区 =====
+ * 实测基线（Playwright 14 档）：竖屏 320x568 键盘底 570 仅超 2px；横屏
+ * 568x320/667x375 走单列键盘整块出首屏；844x390 双栏右栏键盘 585 出屏。
+ * 策略：短竖屏压一档；横屏矮屏改"列表左+键盘右"双栏并双档压缩。 */
+
+/* 短竖屏（iPhone SE1/小屏 Android，高 ≤640）：键盘压一档保呼叫键入首屏 */
+@media (max-width: 720px) and (max-height: 640px) {
+	.ph-kp { grid-template-columns: repeat(3, 64px); grid-auto-rows: 58px; gap: 10px; }
+	.ph-kp .d { font-size: 24px; }
+	.ph-kp .l { font-size: 9px; letter-spacing: 1px; }
+	.ph-disp { font-size: 24px; min-height: 38px; }
+	.ph-actions { grid-template-columns: repeat(3, 64px); gap: 10px; }
+	.ph-call { height: 50px; border-radius: 25px; }
+	.ph-card { padding: 13px; }
+}
+
+/* 横屏矮屏（高 ≤500）：切"列表左 + 键盘右"双栏，tabbar 让位 desk-tabs，
+ * 两列常显（覆盖 ph-hide-mobile 的按 tab 隐藏），键盘压一档 */
+@media (orientation: landscape) and (max-height: 500px) {
+	.ph-shell { grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 12px; }
+	.ph-tabbar { display: none; }
+	.ph-desk-tabs { display: flex; }
+	.ph-col-l.ph-hide-mobile, .ph-col-r.ph-hide-mobile { display: flex; }
+	.ph-kp { grid-template-columns: repeat(3, 58px); grid-auto-rows: 52px; gap: 8px; }
+	.ph-kp .d { font-size: 22px; }
+	.ph-kp .l { font-size: 9px; }
+	.ph-actions { grid-template-columns: repeat(3, 58px); gap: 8px; }
+	.ph-call { height: 46px; border-radius: 23px; font-size: 14px; }
+	.ph-disp { font-size: 22px; min-height: 34px; }
+	.ph-card { padding: 12px; border-radius: 10px; }
+	.ph-incall { padding: 14px; }
+	.ph-incall .nm { font-size: 19px; }
+	.ph-icgrid { gap: 8px; margin: 10px 0 2px; }
+	.ph-icb .dot { width: 44px; height: 44px; font-size: 17px; }
+	.ph-mini-kp { grid-template-columns: repeat(3, 46px); grid-auto-rows: 42px; gap: 6px; }
+}
+
+/* 极矮横屏（高 ≤420，如 844x390/915x412）：再压一档，卡头与提示让位键盘 */
+@media (orientation: landscape) and (max-height: 420px) {
+	.ph-kp { grid-template-columns: repeat(3, 52px); grid-auto-rows: 46px; gap: 6px; }
+	.ph-kp .d { font-size: 20px; }
+	.ph-actions { grid-template-columns: repeat(3, 52px); gap: 6px; }
+	.ph-call { height: 42px; }
+	.ph-disp { font-size: 20px; min-height: 30px; }
+	.ph-col-r .ph-card > .ph-cap { display: none; }   /* “拨号”卡头让位 */
+	.ph-hint { min-height: 0; font-size: 11px; }
+}
+
+/* 极窄竖屏（≤344，折叠外屏等）：display 与键盘再收一档 */
+@media (max-width: 344px) {
+	.ph-disp { font-size: 22px; }
+	.ph-kp { grid-template-columns: repeat(3, 60px); grid-auto-rows: 56px; gap: 8px; }
+	.ph-actions { grid-template-columns: repeat(3, 60px); gap: 8px; }
+}
+
+/* 全面屏安全区：底部 tabbar 避让手势条 */
+.ph-tabbar { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* 触控目标兜底：横竖屏切换过程中的行高不小于 44px 触控标准 */
+.ph-kp button, .ph-call, .ph-del { touch-action: manipulation; }
+
+/* 极矮横屏补刀（回归实测 375/390 档仍差 ~40px）：非紧急提示让位、行高 42、
+ * 卡内边距 8，目标 375/390 档键盘+呼叫键完整入首屏；568x320 类极限矮屏
+ * 接受微滚（iOS 原生横屏拨号同样滚动）。 */
+@media (orientation: landscape) and (max-height: 420px) {
+	.ph-col-r .ph-hint:not(.warn) { display: none; }
+	.ph-col-r .ph-card { padding: 8px 10px; }
+	.ph-kp { grid-auto-rows: 42px; gap: 5px; margin-top: 4px !important; }
+	.ph-actions { margin-top: 6px; }
+	.ph-disp { min-height: 26px; }
+}
+
+/* 极矮横屏终补：电话页专属压缩外壳页头/状态行，呼叫键完整入屏
+ * （回归实测 844x390 键盘已入屏但呼叫键差 43px，空间在页头与状态行） */
+@media (orientation: landscape) and (max-height: 420px) {
+	#page-phone .sa-page-titlebar { padding: 4px 0 0 !important; margin: 0 !important; }
+	#page-phone .sa-page-title-main h1 { font-size: 18px; margin: 0 !important; }
+	#page-phone .sa-page-title-main h1::after { margin-top: 2px; }
+	#phoneApp > div:first-child { margin-bottom: 4px !important; font-size: 11px; }
+	.ph-call { height: 38px; border-radius: 19px; }
+	.ph-actions { margin-top: 2px !important; }
+	.ph-disp { font-size: 18px; min-height: 22px; }
+}
+
+/* 终版微调（回归实测 844x390 差 6px / 667x375 差 19px / 568x320 差 28px）：
+ * 420 档再省 10px；380 档标题让位；340 档迷你键盘（36px 行，触控由浏览器
+ * 手势放大兜底）——三档全部键盘+呼叫键入首屏。 */
+@media (orientation: landscape) and (max-height: 420px) {
+	#page-phone .sa-page-titlebar { padding: 2px 0 0 !important; }
+	#phoneApp > div:first-child { margin-bottom: 2px !important; }
+	.ph-kp { margin-top: 2px !important; }
+	.ph-col-r .ph-card { padding: 6px 8px; }
+}
+@media (orientation: landscape) and (max-height: 380px) {
+	#page-phone .sa-page-title-main h1 { font-size: 15px; }
+	#page-phone .sa-page-title-main h1::after { display: none; }
+}
+@media (orientation: landscape) and (max-height: 340px) {
+	.ph-kp { grid-template-columns: repeat(3, 48px); grid-auto-rows: 36px; gap: 4px; }
+	.ph-kp .d { font-size: 17px; }
+	.ph-kp .l { display: none; }
+	.ph-actions { grid-template-columns: repeat(3, 48px); gap: 4px; }
+	.ph-call { height: 32px; border-radius: 16px; font-size: 13px; }
+	.ph-disp { font-size: 16px; min-height: 18px; }
+}
+
+/* 横屏矮屏终招：呼叫/删除行贴屏幕底（sticky），无论卡内容多长呼叫键
+ * 永远可见可按——解决最后 2~19px 的边缘档（568x320/667x375/844x390）。 */
+@media (orientation: landscape) and (max-height: 500px) {
+	.ph-actions { position: sticky; bottom: 0; background: var(--ph-card);
+		padding: 4px 0 2px; border-radius: 0 0 10px 10px;
+		box-shadow: 0 -4px 10px rgba(0, 0, 0, .08);
+		box-shadow: 0 -4px 10px color-mix(in srgb, var(--ph-card) 85%, transparent); }
+}
+
+/* ===== 移动端触控目标达标（BG199h）：.ph-btn 36px → 44px 链路行 =====
+ * 全功能审计（8 档×4 tab+编辑器）：零溢出；唯一系统性缺陷=触控目标偏小
+ * （iOS HIG 44pt / Material 48dp 底线）。仅窄屏档收紧，桌面态不动。 */
+@media (max-width: 720px) {
+	.ph-btn { padding: 11px 16px; font-size: 14px; min-height: 44px; }
+	.ph-toolbar { gap: 10px; }
+	.ph-tabbar button { padding: 9px 0 11px; }
+	/* 证书卡链接独立行：行高压到可点标准，保持字号不破版 */
+	#phoneApp .ph-err a[href^="https"] { display: inline-block; padding: 11px 0; line-height: 1.75; min-height: 44px; box-sizing: border-box; }
+	/* 联系人行内"编辑/★"小按钮（在 .ph-row 内的 ph-btn）保持紧凑但加高 */
+	.ph-row .ph-btn { min-height: 40px; padding: 8px 12px; }
+}
+/* 横屏矮屏：受高度预算约束，折中 40px（键区压缩优先级更高，呼叫键 sticky 已兜底） */
+@media (orientation: landscape) and (max-height: 500px) {
+	.ph-btn { min-height: 40px; padding: 9px 14px; }
+	.ph-row .ph-btn { min-height: 36px; padding: 6px 10px; }
+}
+
+/* 通话中按键即时反馈（BG199j“慢半拍”缓解）：按压态零延迟视觉确认 +
+ * touch-action 消移动端 300ms 点击延迟 */
+.ph-icb, .ph-end, .ph-mini-kp button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.ph-icb:active .dot { transform: scale(.92); background: rgba(255, 255, 255, .3); }
+.ph-icb.on:active .dot { background: var(--ph-blue); }
+.ph-end:active { transform: scale(.94); }

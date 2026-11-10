@@ -1,0 +1,9 @@
+{
+	"luci-app-simpleadmin": {
+		"description": "Grant access to the RM520N-GL 5G SimpleAdmin panel",
+		"read": {
+			"ubus": [ "luci" ]
+		},
+		"write": {}
+	}
+}
