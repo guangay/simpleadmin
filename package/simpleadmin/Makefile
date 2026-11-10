@@ -50,4 +50,11 @@ define Package/simpleadmin/install
 	$(CP) ./files/usr/share/rpcd/acl.d/*.json $(1)/usr/share/rpcd/acl.d/
 endef
 
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+endef
+
+define Build/Compile
+endef
+
 $(eval $(call BuildPackage,simpleadmin))
