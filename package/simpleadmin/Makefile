@@ -17,7 +17,6 @@ define Package/simpleadmin
   TITLE:=SimpleAdmin 5G modem panel (prebuilt, aarch64)
   DEPENDS:=@aarch64 +qmodem-voip +qmodem-sipd +alsa-lib +libsoxr \
 	+libwebsockets-full +kmod-usb-audio +adb
-  PKGARCH:=aarch64_cortex-a53
 endef
 
 define Package/simpleadmin/description
